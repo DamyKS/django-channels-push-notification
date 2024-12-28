@@ -5,6 +5,7 @@ from django import forms
 from .models import Notification
 from django.http import HttpResponseRedirect
 from django.urls import path
+from .tasks import send_notification_task
 
 
 class SendNotificationForm(forms.Form):
@@ -22,12 +23,14 @@ class NotificationAdmin(admin.ModelAdmin):
                 message = form.cleaned_data["message"]
 
                 notification = Notification.objects.create(message=message)
-
+                send_notification_task.delay(message)
+                """
                 channel_layer = get_channel_layer()
                 async_to_sync(channel_layer.group_send)(
                     "notifications",
                     {"type": "send_notification", "message": message},
                 )
+                """
 
                 return HttpResponseRedirect("./{}".format(notification.pk))
         else:
